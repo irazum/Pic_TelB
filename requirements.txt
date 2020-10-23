@@ -1,0 +1,4 @@
+﻿pymysql
+aiohttp
+aiogram
+psycopg2
