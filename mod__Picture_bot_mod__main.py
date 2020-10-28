@@ -1,10 +1,11 @@
 '''
 ~~!!update handler of API-telegram and main!!~~
 '''
-from Pic_bot_loader_async import *
+from mod__Pic_bot_loader_async import *
 
 from aiogram import Bot, Dispatcher, executor, types
 from datetime import datetime, time, timedelta, timezone
+import time as timetest
 
 token_telegram_bot = config.telegram_bot_token
 # configure debugger
@@ -52,11 +53,12 @@ async def insert_update_db(table: str, input_data: dict, column_names: list) -> 
         input_dct = dict()
         input_dct[column_names[0]] = key
         input_dct[column_names[1]] = value
-        insert_result = db.insert_one(table, input_dct)
+        insert_result = await db.insert_one(table, input_dct)
         if insert_result is not None:
             if ("Duplicate entry" in insert_result):
-                current_value = db.select_simple(table, [column_names[1]], {column_names[0]: key})[0][0]
-                db.update_simple_one(
+                current_value = await db.select_simple(table, [column_names[1]], {column_names[0]: key})
+                current_value = current_value[0][0]
+                await db.update_simple_one(
                     table,
                     column_names[1],
                     (value if current_value is None else current_value + value),
@@ -74,13 +76,14 @@ async def statistics_user_1_func(message):
     :param message:
     :return:
     '''
-    mes1 = f'активных пользоавтелей: {len(users_stat)}'
+    mes1 = f'активных пользователей: {len(users_stat)}'
     mes2 = f'всего запросов картинок за сессию: {sum(users_stat.values())}'
     users_stat_lst = sorted(users_stat.items(), key=lambda x: (x[1], x[0]), reverse=True)[:5:]
     # top 5 active users [[first_name, number_of_send_messages, number_of_requests_photo]...]
     data = list()
     for item in users_stat_lst:
-        first_name = db.select_simple("users", ["first_name"], {"id": item[0]})[0][0]
+        first_name = await db.select_simple("users", ["first_name"], {"id": item[0]})
+        first_name = first_name[0][0]
         data.append([first_name, users_stat_mes.get(item[0], 0), item[1]])
     mes3 = str()
     for item in data:
@@ -89,7 +92,8 @@ async def statistics_user_1_func(message):
     us_mes_lst = sorted(users_stat_mes.items(), key=lambda x: x[1], reverse=True)[:1:]
     mes4 = str()
     if len(us_mes_lst) > 0:
-        first_name = db.select_simple("users", ["first_name"], {"id": us_mes_lst[0][0]})[0][0]
+        first_name = await db.select_simple("users", ["first_name"], {"id": us_mes_lst[0][0]})
+        first_name = first_name[0][0]
         mes4 = f'top mes.: {first_name}: {us_mes_lst[0][1]}'
 
     await message.reply(f'{mes1}\n{mes2}\n{mes3}\n\n{mes4}', reply=False)
@@ -130,8 +134,9 @@ async def statistics_user_2_func(message):
     :param message:
     :return:
     '''
-    mes1 = f"всего юзеров: {db.select_simple('users', ['count(id)'])[0][0]}"
-    data = db.select_inner_join_simple(
+    mes1 = await db.select_simple('users', ['count(id)'])
+    mes1 = f"всего юзеров: {mes1[0][0]}"
+    data = await db.select_inner_join_simple(
         "stat_users",
         'users',
         ("user_id", "id"),
@@ -151,7 +156,7 @@ async def statistics_categories_2_func(message):
     :param message:
     :return:
     '''
-    data = db.select_simple("stat_categories", ["category", "requests_number"])
+    data = await db.select_simple("stat_categories", ["category", "requests_number"])
     mes = "statistics\n"
     for item in sorted(data, key=lambda x: x[1], reverse=True):
         mes += f"{': '.join([str(i) for i in item])}\n"
@@ -168,7 +173,7 @@ async def statistics_time_2_func(message):
     :param message:
     :return:
     '''
-    data = db.select_simple("stat_time", ["time", "requests_number"])
+    data = await db.select_simple("stat_time", ["time", "requests_number"])
     mes = "statistics\n"
     for item in sorted(data, key=lambda x: x[1], reverse=True):
         mes += f"\n{'ч.: '.join([str(i) for i in item])}"
@@ -182,7 +187,8 @@ async def statistics_time_2_func(message):
     :param message:
     :return:
     '''
-    mes = f"всего лайков: {db.select_simple('likes_photo', ['sum(likes_number)'])[0][0]}"
+    mes = await db.select_simple('likes_photo', ['sum(likes_number)'])
+    mes = f"всего лайков: {mes[0][0]}"
     await message.reply(mes, reply=False)
 
 
@@ -228,7 +234,7 @@ async def send_help(message: types.Message):
     markup_r.add(button_r)
     await message.reply(help_message.strip(), reply=False, reply_markup=markup_r)
     # added a new user in data base
-    db.insert_one(
+    await db.insert_one(
         'users',
         {'id': message.from_user.id, 'is_bot': message.from_user.is_bot,
          'first_name': message.from_user.first_name, 'last_name': message.from_user.last_name,
@@ -751,11 +757,12 @@ async def callback_button_like(callback_query):
         likes_photo_dct[photo_id] = [callback_query.message.caption, 1]
 
     try:
+        data = await db.select_simple("container", ["url_original"], {"id": int(callback_query.data)})
         button1 = types.InlineKeyboardButton(
             '💓💓💓',
-            db.select_simple("container", ["url_original"], {"id": int(callback_query.data)})[0][0]
+            data[0][0]
         )
-    except pymysql.Error as err:  # ожидаю здесь ошибки соединения с базой данных или
+    except aiomysql.Error as err:  # ожидаю здесь ошибки соединения с базой данных или
         print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
         button1 = types.InlineKeyboardButton(
             '💓💓💓',
@@ -795,13 +802,13 @@ async def db_statistics_update() -> None:
             input_dct["photo_id"] = photo_id
             input_dct["author"] = value[0]
             input_dct["likes_number"] = value[1]
-            if db.insert_one("likes_photo", input_dct) is not None:
-                n = db.select_simple(
+            if await db.insert_one("likes_photo", input_dct) is not None:
+                n = await db.select_simple(
                     "likes_photo",
                     ["likes_number"],
                     {"photo_id": photo_id}
                 )[0][0]
-                db.update_simple_one(
+                await db.update_simple_one(
                     "likes_photo",
                     "likes_number",
                     n + input_dct["likes_number"],
@@ -816,13 +823,12 @@ async def container_update_in_aiogram_eventloop() -> None:
     :return:
     '''
     while True:
-        await asyncio.sleep(60 * 60 * 12)  # normal: update every 12 hours
+        await asyncio.sleep(60 * 60 * 24)  # normal: update every 12 hours
         try:
-            await main_container_update(3)  # normal value: 3
+            await UpdateLoader().main(3)  # normal value: 3
         except CategoryError as err:
             print(err.__class__, err)
-            main_container_filling_from_db(1)
-        test_func()
+            UpdateLoaderFromDb().main(1, db)
 
 
 async def time_sending_for_users():
@@ -845,7 +851,7 @@ async def time_sending_for_users():
         await asyncio.sleep(sleep_t)
         print('time_sending_for_users!')
 
-        data = db.select_simple("users", ["id"])
+        data = await db.select_simple("users", ["id"])
 
         def get_media_obj(categories: list) -> types.MediaGroup:
             photos = list()
@@ -874,11 +880,13 @@ async def time_sending_for_users():
 
 if __name__ == '__main__':
     try:
-        asyncio.run(main_for_first_data_filling(2))  # 3
-        print("main_for_first_data_filling completed!")
+        time0 = timetest.time()
+        asyncio.run(FirstLoader().main(2))  # 2
+        print(timetest.time() - time0)
+        print("FirstLoader completed!")
     except CategoryError as err:
         print(err.__class__, err)
-        main_container_filling_from_db_first(1)
+        FirstLoaderFromDb().main(1, db)
 
     # add periodic update func's in aiogram event loop
     dp.loop.create_task(db_statistics_update())
