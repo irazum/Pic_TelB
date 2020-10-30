@@ -819,6 +819,7 @@ async def db_statistics_update() -> None:
 
 async def container_update_in_aiogram_eventloop() -> None:
     '''
+    this func don't use in this bots version
     "container" update
     :return:
     '''
@@ -828,7 +829,7 @@ async def container_update_in_aiogram_eventloop() -> None:
             await UpdateLoader().main(3)  # normal value: 3
         except CategoryError as err:
             print(err.__class__, err)
-            UpdateLoaderFromDb().main(1, db)
+            await SpecialFuncs().update_loader_from_db(1, db)
 
 
 async def time_sending_for_users():
@@ -879,14 +880,9 @@ async def time_sending_for_users():
 
 
 if __name__ == '__main__':
-    try:
-        time0 = timetest.time()
-        asyncio.run(FirstLoader().main(2))  # 2
-        print(timetest.time() - time0)
-        print("FirstLoader completed!")
-    except CategoryError as err:
-        print(err.__class__, err)
-        FirstLoaderFromDb().main(1, db)
+    time0 = timetest.time()
+    asyncio.run(FirstLoader().main(2))  # 2
+    print(f"FirstLoader completed! {round(timetest.time() - time0)} c")
 
     # add periodic update func's in aiogram event loop
     dp.loop.create_task(db_statistics_update())

@@ -67,11 +67,6 @@ class AioDatabase:
         # table constraint exception handler
         except aiomysql.IntegrityError as exc:
             return str(exc)
-        except aiomysql.Error as err:
-            print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
-        except AttributeError as err:
-            print("!!Data Base Functions ERROR!!:\n", f"{err.__class__}: ", err)
-            conn.close()
 
 
     async def select_simple(self, table: str, columns: list, conditions=None, operator='and'):
@@ -84,35 +79,29 @@ class AioDatabase:
         :param operator: and, or
         :return:
         '''
-        try:
-            conn = await self.__open_conn()
-            async with conn.cursor() as cur:
-                if conditions is None:
-                    conditions = {}
-                columns_str = ','.join(columns)
-                condition_str_lst = []
-                values = []
-                for key, val in conditions.items():
-                    condition_str_lst.append(f"{key}=%s")
-                    values.append(val)
-                values = tuple(values)
-                if len(condition_str_lst) > 0:
-                    condition_str_lst[0] = f'where {condition_str_lst[0]}'
-                condition_str = f' {operator} '.join(condition_str_lst)
+        conn = await self.__open_conn()
+        async with conn.cursor() as cur:
+            if conditions is None:
+                conditions = {}
+            columns_str = ','.join(columns)
+            condition_str_lst = []
+            values = []
+            for key, val in conditions.items():
+                condition_str_lst.append(f"{key}=%s")
+                values.append(val)
+            values = tuple(values)
+            if len(condition_str_lst) > 0:
+                condition_str_lst[0] = f'where {condition_str_lst[0]}'
+            condition_str = f' {operator} '.join(condition_str_lst)
 
-                await cur.execute(
-                    f"select {columns_str} from {table} "
-                    f"{condition_str};",
-                    values
-                )
-                data = await cur.fetchall()
-            conn.close()
-            return data
-        except aiomysql.Error as err:
-            print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
-        except AttributeError as err:
-            print("!!Data Base Functions ERROR!!:\n", f"{err.__class__}: ", err)
-            conn.close()
+            await cur.execute(
+                f"select {columns_str} from {table} "
+                f"{condition_str};",
+                values
+            )
+            data = await cur.fetchall()
+        conn.close()
+        return data
 
 
     async def select_inner_join_simple(self, table1: str, table2: str, inner: tuple, columns: list):
@@ -124,23 +113,17 @@ class AioDatabase:
         :param columns: need columns in result
         :return:
         """
-        try:
-            conn = await self.__open_conn()
-            async with conn.cursor() as cur:
-                columns_str = ','.join(columns)
-                await cur.execute(
-                    f"select {columns_str} from {table1} as t1 "
-                    f"inner join {table2} as t2 "
-                    f"on t1.{inner[0]} = t2.{inner[1]};"
-                )
-                data = await cur.fetchall()
-            conn.close()
-            return data
-        except aiomysql.Error as err:
-            print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
-        except AttributeError as err:
-            print("!!Data Base Functions ERROR!!:\n", f"{err.__class__}: ", err)
-            conn.close()
+        conn = await self.__open_conn()
+        async with conn.cursor() as cur:
+            columns_str = ','.join(columns)
+            await cur.execute(
+                f"select {columns_str} from {table1} as t1 "
+                f"inner join {table2} as t2 "
+                f"on t1.{inner[0]} = t2.{inner[1]};"
+            )
+            data = await cur.fetchall()
+        conn.close()
+        return data
 
 
     async def update_simple_one(self, table: str, column: str, value, conditions: dict, operator='and'):
@@ -154,31 +137,25 @@ class AioDatabase:
         :param operator: and, or
         :return:
         """
-        try:
-            conn = await self.__open_conn()
-            async with conn.cursor() as cur:
-                condition_str_lst = []
-                values = [value]
-                for key, val in conditions.items():
-                    condition_str_lst.append(f"{key}=%s")
-                    values.append(val)
-                values = tuple(values)
-                if len(condition_str_lst) > 0:
-                    condition_str_lst[0] = f'where {condition_str_lst[0]}'
-                condition_str = f' {operator} '.join(condition_str_lst)
+        conn = await self.__open_conn()
+        async with conn.cursor() as cur:
+            condition_str_lst = []
+            values = [value]
+            for key, val in conditions.items():
+                condition_str_lst.append(f"{key}=%s")
+                values.append(val)
+            values = tuple(values)
+            if len(condition_str_lst) > 0:
+                condition_str_lst[0] = f'where {condition_str_lst[0]}'
+            condition_str = f' {operator} '.join(condition_str_lst)
 
-                await cur.execute(
-                    f"update {table} set {column}=%s "
-                    f"{condition_str};",
-                    values
-                )
-                await conn.commit()
-            conn.close()
-        except aiomysql.Error as err:
-            print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
-        except AttributeError as err:
-            print("!!Data Base Functions ERROR!!:\n", f"{err.__class__}: ", err)
-            conn.close()
+            await cur.execute(
+                f"update {table} set {column}=%s "
+                f"{condition_str};",
+                values
+            )
+            await conn.commit()
+        conn.close()
 
 
 
@@ -190,26 +167,21 @@ class AioDatabase:
         :param dct: service dict initializing function
         :return: None
         '''
-        try:
-            conn = await self.__open_conn()
-            async with conn.cursor() as cur:
-                for key, value in dct.items():
-                    try:
-                        await cur.execute(
-                            f"insert into container values "
-                            f"("
-                            f"Null, %s, %s, %s, (select category_id from categories where category = %s) "
-                            f");",
-                            (key, value[0], value[1], category)
-                        )
-                    except aiomysql.IntegrityError:
-                        pass
-                await conn.commit()
-            conn.close()
-        except aiomysql.Error as err:
-            print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
-        except AttributeError as err:
-            print("!!Data Base Functions ERROR!!:\n", f"{err.__class__}: ", err)
+        conn = await self.__open_conn()
+        async with conn.cursor() as cur:
+            for key, value in dct.items():
+                try:
+                    await cur.execute(
+                        f"insert into container values "
+                        f"("
+                        f"Null, %s, %s, %s, (select category_id from categories where category = %s) "
+                        f");",
+                        (key, value[0], value[1], category)
+                    )
+                except aiomysql.IntegrityError:
+                    pass
+            await conn.commit()
+        conn.close()
 
 
     async def select_url(self, category: str):
@@ -217,29 +189,24 @@ class AioDatabase:
         :param category: name of category
         :return: dict with 80 urls and their captions or less
         """
-        try:
-            conn = await self.__open_conn()
-            async with conn.cursor() as cur:
-                await cur.execute(
-                    f'select url, photographer from container as con '
-                    f'inner join categories as cat '
-                    f'on con.category_id = cat.category_id '
-                    f'where category = %s;',
-                    (category,)
-                )
-                data = await cur.fetchall()
-                if len(data) > 80:
-                    data = r.sample(data, 80)
-                dct = {}
-                for element in data:
-                    dct[element[0]] = element[1]
-            conn.close()
-            return dct
-        except aiomysql.Error as err:
-            print("!!Data Base ERROR!!:\n", f"{err.__class__}: ", err)
-        except AttributeError as err:
-            print("!!Data Base Functions ERROR!!:\n", f"{err.__class__}: ", err)
-            conn.close()
+        conn = await self.__open_conn()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f'select url, url_original, photographer, id '
+                f'from container as con '
+                f'inner join categories as cat '
+                f'on con.category_id = cat.category_id '
+                f'where category = %s;',
+                (category,)
+            )
+            data = await cur.fetchall()
+            if len(data) > 80:
+                data = r.sample(data, 80)
+            dct = {}
+            for element in data:
+                dct[element[0]] = [element[1], element[2], element[3]]
+        conn.close()
+        return dct
 
 
 config = Config()
