@@ -208,6 +208,24 @@ class AioDatabase:
         conn.close()
         return dct
 
+    async def delete_simple(self, table: str, conditions: dict, operator='and'):
+        conn = await self.__open_conn()
+        async with conn.cursor() as cur:
+
+            condition_str_lst = []
+            values = []
+            for key, val in conditions.items():
+                condition_str_lst.append(f"{key}=%s")
+                values.append(val)
+            values = tuple(values)
+            condition_str_lst[0] = f'where {condition_str_lst[0]}'
+            condition_str = f' {operator} '.join(condition_str_lst)
+            await cur.execute(
+                f'delete from {table} '
+                f'{condition_str};',
+                values
+            )
+
 
 config = Config()
 db = AioDatabase(config)

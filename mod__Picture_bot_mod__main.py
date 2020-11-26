@@ -4,6 +4,7 @@
 from mod__Pic_bot_loader_async import *
 
 from aiogram import Bot, Dispatcher, executor, types
+from aiogram.utils.exceptions import BotBlocked
 from datetime import datetime, time, timedelta, timezone
 import time as timetest
 
@@ -874,8 +875,11 @@ async def time_sending_for_users():
             if count % 10 == 0 and count != 0:
                 media = get_media_obj(categories)
                 await asyncio.sleep(1)
-
-            await bot.send_media_group(element[0], media)
+            try:
+                await bot.send_media_group(element[0], media)
+            except BotBlocked as err:
+                print("!!time_sending_for_users func ERROR!!:\n", f"{err.__class__}: ", err)
+                await db.delete_simple("users", {"id": element[0]})
             count += 1
 
 

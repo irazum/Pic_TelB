@@ -14,7 +14,7 @@ categories_lst = [
 ]
 
 # For debugging
-# categories_lst = ['smile', 'wild animals', "friends"]
+# categories_lst = ['cats', 'dogs', 'nature']
 
 categories_translate_dict = {
     'cats': 'котики', 'dogs': 'собаки', 'nature': 'природа', 'water': 'водичка',
