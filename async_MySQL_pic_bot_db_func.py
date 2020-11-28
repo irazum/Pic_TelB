@@ -225,6 +225,7 @@ class AioDatabase:
                 f'{condition_str};',
                 values
             )
+            await conn.commit()
 
 
 config = Config()

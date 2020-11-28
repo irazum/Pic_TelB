@@ -879,6 +879,7 @@ async def time_sending_for_users():
                 await bot.send_media_group(element[0], media)
             except BotBlocked as err:
                 print("!!time_sending_for_users func ERROR!!:\n", f"{err.__class__}: ", err)
+                await db.delete_simple("stat_users", {"user_id": element[0]})
                 await db.delete_simple("users", {"id": element[0]})
             count += 1
 
