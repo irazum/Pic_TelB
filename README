@@ -1,15 +1,12 @@
 This is the Picture telegram bot.
 The bot uses aiogramm api, asyncio, aiohttp and aiomysql.
-The bot runed on Heroku.com, the database runed on Amazon RDS.
+The bot runs on Heroku.com, the database runs on Amazon RDS.
 ---------------------------------------------------
-It loads links on random photos for each desired category and their authors from API Pexels to MySQL database and
-in a local container.
-Then the bot answers users` requests.
-Depending on the choice of users the bot sends them random photos from choosed category.
-A user can likes photo and then he gets a link on this photo in the original resolution.
-Heroku restarts the bot once a day and the bot updates its urls-container. If API Pexels 
-crashes than the container filled from database.  
-Once a day bot sends 3 pictures to each user who used the bot.
-Also the bot has 8 commands for admins to display statistic. Current statistics commands 
-shows statistic for last hour. Total statistic uploads data from database and shows 
-statistic for all time.
+The bot loads links to random photos for each category from API Pexels. 
+Then the app uploads them to the MySQL database and to the local container.
+Depending on the choice of users the bot sends them random photos from chosen category.
+A user can like a photo and then he gets a link to this photo in the original resolution.
+Heroku restarts the bot once a day and the bot updates its urls-container. If API Pexels
+crashes than the container downloads links from the database.
+Once a day bot sends 3 pictures to each user who uses the bot.
+Also the bot has 8 commands for admins to display statistics.
