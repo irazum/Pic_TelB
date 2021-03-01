@@ -8,5 +8,5 @@ Depending on the choice of users the bot sends them random photos from chosen ca
 A user can like a photo and then he gets a link to this photo in the original resolution.
 Heroku restarts the bot once a day and the bot updates its urls-container. If API Pexels
 crashes than the container downloads links from the database.
-Once a day bot sends 3 pictures to each user who uses the bot.
+Once a day bot sends 3 pictures to each user.
 Also the bot has 8 commands for admins to display statistics.
